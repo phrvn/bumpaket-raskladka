@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Чертёж бумажного пакета</title>
+<style>
+    * { box-sizing: border-box; }
+    body {
+        margin: 0;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: #f4f6fb;
+        color: #222;
+    }
+    .wrapper {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 16px;
+        display: flex;
+        gap: 16px;
+        flex-wrap: wrap;
+    }
+    .card {
+        background: #ffffff;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+        padding: 16px 18px;
+    }
+    .controls {
+        flex: 1 1 280px;
+        min-width: 280px;
+    }
+    .drawing-card {
+        flex: 2 1 400px;
+        min-width: 320px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+    .card-header {
+        font-weight: 600;
+        margin-bottom: 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 15px;
+    }
+    .subheader {
+        font-weight: 600;
+        font-size: 14px;
+        margin: 4px 0 8px;
+    }
+    .params-grid {
+        display: grid;
+        grid-template-columns: 1fr 90px;
+        gap: 8px 12px;
+        align-items: center;
+    }
+    .param-label { font-size: 14px; }
+    .param-label span {
+        font-weight: 600;
+        margin-right: 4px;
+    }
+    .param-input {
+        width: 100%;
+        padding: 6px 8px;
+        border-radius: 8px;
+        border: 1px solid #d0d7e2;
+        font-size: 14px;
+        text-align: right;
+    }
+    .param-input:focus {
+        outline: none;
+        border-color: #2563eb;
+        box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.25);
+    }
+    .hint {
+        margin-top: 10px;
+        font-size: 12px;
+        color: #6b7280;
+    }
+
+    .layout-block {
+        margin-top: 18px;
+        padding-top: 12px;
+        border-top: 1px solid #e5e7eb;
+        font-size: 14px;
+    }
+    .layout-title {
+        font-weight: 600;
+        margin-bottom: 8px;
+    }
+    .layout-options {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px 14px;
+        margin-bottom: 10px;
+    }
+    .layout-options label {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 13px;
+        cursor: pointer;
+    }
+    .layout-options input[type="checkbox"] {
+        cursor: pointer;
+    }
+    .accordion-toggle {
+        width: 100%;
+        margin-top: 6px;
+        padding: 6px 10px;
+        border-radius: 8px;
+        border: 1px solid #d1d5db;
+        background: #f3f4f6;
+        cursor: pointer;
+        font-size: 13px;
+        text-align: left;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .accordion-toggle span { flex: 1; }
+    .accordion-toggle .arrow {
+        font-size: 11px;
+        color: #6b7280;
+    }
+    .accordion-content {
+        margin-top: 8px;
+        display: none;
+        overflow-x: auto; /* чтобы таблица не залезала под соседний блок */
+    }
+    .accordion-content.open { display: block; }
+
+    .paper-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+        margin-bottom: 8px;
+    }
+    .paper-table th,
+    .paper-table td {
+        border: 1px solid #e5e7eb;
+        padding: 4px 6px;
+        text-align: center;
+        min-width: 70px;
+    }
+    .paper-table th:last-child,
+    .paper-table td:last-child { min-width: 32px; }
+    .paper-table th {
+        background: #f9fafb;
+        font-weight: 600;
+    }
+    .paper-table input {
+        width: 100%;
+        border: none;
+        font-size: 13px;
+        padding: 2px 4px;
+        text-align: center;
+    }
+    .paper-table input:focus {
+        outline: none;
+        background: #eff6ff;
+    }
+    .paper-table input[readonly] {
+        background: #f9fafb;
+        color: #6b7280;
+    }
+    .paper-table .delete-row {
+        cursor: pointer;
+        border-radius: 4px;
+        border: none;
+        padding: 2px 6px;
+        background: #fee2e2;
+        font-size: 12px;
+        color: #b91c1c;
+    }
+    .add-row-btn {
+        border-radius: 6px;
+        border: 1px dashed #9ca3af;
+        padding: 4px 10px;
+        font-size: 12px;
+        background: #f9fafb;
+        cursor: pointer;
+    }
+
+    #layoutResults {
+        margin-top: 10px;
+        font-size: 13px;
+    }
+    #layoutResults .result-block { margin-top: 4px; }
+
+    .svg-wrapper {
+        border-radius: 8px;
+        box-shadow: inset 0 0 0 1px #e5e7eb;
+        background: #ffffff;
+    }
+    #svgHalfContainer, #svgFullContainer { width: 100%; }
+    svg.drawing {
+        width: 100%;
+        height: auto;
+        background: #ffffff;
+        border-radius: 8px;
+    }
+    .footer-note {
+        margin-top: 4px;
+        font-size: 12px;
+        color: #6b7280;
+    }
+
+    .tabs {
+        display: flex;
+        gap: 4px;
+        margin-bottom: 8px;
+        border-bottom: 1px solid #e5e7eb;
+    }
+    .tab {
+        padding: 6px 14px;
+        border-radius: 10px 10px 0 0;
+        border: 1px solid transparent;
+        background: #eef1f7;
+        font-size: 13px;
+        cursor: pointer;
+        color: #4b5563;
+    }
+    .tab.active {
+        background: #ffffff;
+        border-color: #e5e7eb;
+        border-bottom-color: #ffffff;
+        color: #1d4ed8;
+        font-weight: 600;
+    }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    .layout-placeholder {
+        font-size: 13px;
+        color: #9ca3af;
+        padding: 24px;
+        text-align: center;
+        display: block;
+    }
+
+    details.sheet-block {
+        border-bottom: 1px solid #e5e7eb;
+        padding: 8px 10px;
+    }
+    details.sheet-block summary {
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 500;
+    }
+    details.sheet-block summary::-webkit-details-marker { display: none; }
+    details.sheet-block summary::before {
+        content: "▸";
+        display: inline-block;
+        margin-right: 6px;
+        font-size: 11px;
+        transform: translateY(-1px);
+    }
+    details.sheet-block[open] summary::before { content: "▾"; }
+    .sheet-svg-wrapper {
+        margin-top: 8px;
+        padding: 8px;
+        display: flex;           /* центрируем чертёж */
+        justify-content: center; /* по центру блока */
+        overflow: auto;          /* и даём скролл, если не влазит */
+    }
+</style>
+</head>
+<body>
+<div class="wrapper">
+    <div class="card controls">
+        <div class="card-header">
+            <span>Размеры пакета, мм</span>
+        </div>
+        <div class="params-grid">
+            <div class="param-label"><span>W</span>Ширина</div>
+            <input id="wInput" class="param-input" type="number" value="300" step="1">
+            <div class="param-label"><span>H</span>Высота</div>
+            <input id="hInput" class="param-input" type="number" value="400" step="1">
+            <div class="param-label"><span>D</span>Глубина</div>
+            <input id="dInput" class="param-input" type="number" value="120" step="1">
+            <div class="param-label"><span>G</span>Клеевой клапан</div>
+            <input id="gInput" class="param-input" type="number" value="20" step="1">
+            <div class="param-label"><span>B</span>Дно</div>
+            <input id="bInput" class="param-input" type="number" value="20" step="1">
+            <div class="param-label"><span>T</span>Подворот сверху</div>
+            <input id="tInput" class="param-input" type="number" value="40" step="1">
+        </div>
+        <div class="hint">
+            Исходная точка (0,0) — верхний левый угол развёртки.
+        </div>
+
+        <div class="layout-block">
+            <div class="layout-title">Раскладка на лист</div>
+            <div class="layout-options">
+                <label><input type="checkbox" id="cfA3"> А3 цифра</label>
+                <label><input type="checkbox" id="cfA2"> А2 цифра</label>
+                <label><input type="checkbox" id="ofA3"> А3 офсет</label>
+                <label><input type="checkbox" id="ofA2"> А2 офсет</label>
+                <label><input type="checkbox" id="ofA1"> А1 офсет</label>
+            </div>
+            <button type="button" class="accordion-toggle" id="paperAccordionToggle">
+                <span>Таблица форматов бумаги</span>
+                <span class="arrow" id="paperAccordionArrow">▼</span>
+            </button>
+            <div class="accordion-content" id="paperAccordionContent">
+                <table class="paper-table">
+                    <thead>
+                    <tr>
+                        <th>Длина</th>
+                        <th>Ширина</th>
+                        <th>ТехП длина</th>
+                        <th>ТехП ширина</th>
+                        <th>ЖивП длина</th>
+                        <th>ЖивП ширина</th>
+                        <th>Формат печати</th>
+                        <th></th>
+                    </tr>
+                    </thead>
+                    <tbody id="paperTableBody"></tbody>
+                </table>
+                <button type="button" class="add-row-btn" id="addPaperRow">Добавить строку</button>
+            </div>
+
+            <div id="layoutResults"></div>
+        </div>
+    </div>
+
+    <div class="card drawing-card">
+        <div class="card-header">
+            <span>Блок чертежей</span>
+        </div>
+
+        <div class="tabs">
+            <button type="button" class="tab active" data-tab="drawing">Чертёж</button>
+            <button type="button" class="tab" data-tab="layout">Раскладка</button>
+        </div>
+
+        <div id="tab-drawing" class="tab-content active">
+            <div>
+                <div class="subheader" id="halfTitle">
+                    Половинка пакета (длина ножей биговок ... м)
+                </div>
+                <div id="svgHalfContainer" class="svg-wrapper"></div>
+            </div>
+            <div style="margin-top:12px;">
+                <div class="subheader" id="fullTitle">
+                    Цельнокройный пакет (длина ножей биговок ... м)
+                </div>
+                <div id="svgFullContainer" class="svg-wrapper"></div>
+            </div>
+            <div class="footer-note">
+                Синие стрелки показывают размеры в мм.
+            </div>
+        </div>
+
+        <div id="tab-layout" class="tab-content">
+            <div id="sheetLayoutContainer" class="svg-wrapper">
+                <span id="sheetLayoutPlaceholder" class="layout-placeholder">
+                    Выберите формат(ы) печати и/или измените параметры пакета — здесь появится визуализация раскладки.
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const defaultPaperData = [
+    { length: 450, width: 320, techL: 20, techW: 10, type: "А3 цифра" },
+    { length: 486, width: 330, techL: 14, techW: 10, type: "А3 цифра" },
+    { length: 720, width: 520, techL: 10, techW: 20, type: "А2 цифра" },
+    { length: 500, width: 350, techL: 10, techW: 25, type: "А3 офсет" },
+    { length: 700, width: 330, techL: 10, techW: 25, type: "А2 офсет" },
+    { length: 620, width: 470, techL: 10, techW: 25, type: "А2 офсет" },
+    { length: 650, width: 470, techL: 10, techW: 25, type: "А2 офсет" },
+    { length: 700, width: 500, techL: 10, techW: 25, type: "А2 офсет" },
+    { length: 720, width: 520, techL: 10, techW: 25, type: "А2 офсет" },
+    { length: 900, width: 640, techL: 10, techW: 25, type: "А1 офсет" },
+    { length: 940, width: 620, techL: 10, techW: 25, type: "А1 офсет" },
+    { length: 1000, width: 700, techL: 10, techW: 25, type: "А1 офсет" },
+    { length: 1040, width: 720, techL: 10, techW: 25, type: "А1 офсет" }
+];
+
+function createHorizontalDim(x1, x2, yDim, objY, label) {
+    const midX = (x1 + x2) / 2;
+    return `
+        <line x1="${x1}" y1="${objY}" x2="${x1}" y2="${yDim}" stroke="#0066cc" stroke-width="0.5"/>
+        <line x1="${x2}" y1="${objY}" x2="${x2}" y2="${yDim}" stroke="#0066cc" stroke-width="0.5"/>
+        <line x1="${x1}" y1="${yDim}" x2="${x2}" y2="${yDim}" stroke="#0066cc" stroke-width="0.7"
+              marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+        <text x="${midX}" y="${yDim - 3}" fill="#0066cc" font-size="10" text-anchor="middle">${label}</text>
+    `;
+}
+function createVerticalDim(xDim, y1, y2, objX, label) {
+    const midY = (y1 + y2) / 2;
+    return `
+        <line x1="${objX}" y1="${y1}" x2="${xDim}" y2="${y1}" stroke="#0066cc" stroke-width="0.5"/>
+        <line x1="${objX}" y1="${y2}" x2="${xDim}" y2="${y2}" stroke="#0066cc" stroke-width="0.5"/>
+        <line x1="${xDim}" y1="${y1}" x2="${xDim}" y2="${y2}" stroke="#0066cc" stroke-width="0.7"
+              marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+        <text x="${xDim - 3}" y="${midY + 3}" fill="#0066cc" font-size="10" text-anchor="end">${label}</text>
+    `;
+}
+
+let fullBagRect = { w: 0, h: 0 };
+let halfBagRect = { w: 0, h: 0 };
+let geomHalf = "";
+let geomFull = "";
+let layoutBest = [];
+
+function draw() {
+    const W = parseFloat(document.getElementById('wInput').value) || 300;
+    const H = parseFloat(document.getElementById('hInput').value) || 400;
+    const D = parseFloat(document.getElementById('dInput').value) || 120;
+    const G = parseFloat(document.getElementById('gInput').value) || 20;
+    const B = parseFloat(document.getElementById('bInput').value) || 20;
+    const T = parseFloat(document.getElementById('tInput').value) || 40;
+
+    const halfD = D / 2;
+
+    const x0 = 0;
+    const x1 = halfD;
+    const x2 = halfD + W;
+    const x3 = halfD + W + halfD;
+    const x4 = D + W + G;
+
+    const y0 = 0;
+    const y1 = T;
+    const y2 = T + (H - halfD);
+    const y3 = T + H;
+    const y4 = T + H + halfD + B;
+
+    const totalWidthHalf = x4;
+    const totalHeight = y4;
+
+    const margin = 80;
+    const vbXHalf = -margin;
+    const vbYHalf = -margin;
+    const vbWHalf = totalWidthHalf + margin * 2;
+    const vbHHalf = totalHeight + margin * 2;
+
+    const yDimChain = y0 - 20;
+    const yDimTotal = yDimChain - 24;
+    const xDimChain = x0 - 20;
+    const xDimTotal = xDimChain - 24;
+
+    const deltaDiag = y4 - y2;
+    const sqrt2 = Math.sqrt(2);
+
+    const leftStartX_half  = x0;
+    const leftStartY_half  = y2;
+    const leftDiagEndX_half = leftStartX_half + deltaDiag;
+    const leftDiagEndY_half = y4;
+
+    const rightStartX_half = x3;
+    const rightStartY_half = y2;
+    const rightDiagBottomX_half = rightStartX_half - deltaDiag;
+    const rightDiagBottomY_half = y4;
+    const rightDiagSideX_half = x4;
+    const rightDiagSideY_half = rightStartY_half + (x4 - x3);
+
+    const halfVertLen = 3 * totalHeight;
+    const halfHorizLen = 3 * totalWidthHalf;
+    const halfDiagLen = 2 * sqrt2 * deltaDiag + sqrt2 * (x4 - x3);
+    const halfKnifeLength_mm = halfVertLen + halfHorizLen + halfDiagLen;
+    const halfKnifeLength_m = (halfKnifeLength_mm / 1000).toFixed(2);
+
+    geomHalf = `
+  <g stroke="#000000" stroke-width="0.8" fill="none">
+    <rect x="${x0}" y="${y0}" width="${totalWidthHalf}" height="${totalHeight}" />
+    <line x1="${x0}" y1="${y0}" x2="${x0}" y2="${y4}" />
+    <line x1="${x1}" y1="${y0}" x2="${x1}" y2="${y4}" />
+    <line x1="${x2}" y1="${y0}" x2="${x2}" y2="${y4}" />
+    <line x1="${x3}" y1="${y0}" x2="${x3}" y2="${y4}" />
+    <line x1="${x4}" y1="${y0}" x2="${x4}" y2="${y4}" />
+    <line x1="${x0}" y1="${y0}" x2="${x4}" y2="${y0}" />
+    <line x1="${x0}" y1="${y1}" x2="${x4}" y2="${y1}" />
+    <line x1="${x0}" y1="${y2}" x2="${x4}" y2="${y2}" />
+    <line x1="${x0}" y1="${y3}" x2="${x4}" y2="${y3}" />
+    <line x1="${x0}" y1="${y4}" x2="${x4}" y2="${y4}" />
+    <line x1="${leftStartX_half}"  y1="${leftStartY_half}"
+          x2="${leftDiagEndX_half}" y2="${leftDiagEndY_half}" />
+    <line x1="${rightStartX_half}" y1="${rightStartY_half}"
+          x2="${rightDiagBottomX_half}" y2="${rightDiagBottomY_half}" />
+    <line x1="${rightStartX_half}" y1="${rightStartY_half}"
+          x2="${rightDiagSideX_half}" y2="${rightDiagSideY_half}" />
+  </g>`;
+
+    let svgHalf = `
+<svg class="drawing" xmlns="http://www.w3.org/2000/svg"
+     viewBox="${vbXHalf} ${vbYHalf} ${vbWHalf} ${vbHHalf}">
+  <defs>
+    <marker id="arrow" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6 Z" fill="#0066cc"></path>
+    </marker>
+  </defs>
+  ${geomHalf}
+  <g fill="#0066cc" stroke="#0066cc" stroke-width="0.5">
+    ${createHorizontalDim(x0, x1, yDimChain, y0, halfD.toFixed(0))}
+    ${createHorizontalDim(x1, x2, yDimChain, y0, W.toFixed(0))}
+    ${createHorizontalDim(x2, x3, yDimChain, y0, halfD.toFixed(0))}
+    ${createHorizontalDim(x3, x4, yDimChain, y0, G.toFixed(0))}
+    ${createHorizontalDim(x0, x4, yDimTotal, y0, (D + W + G).toFixed(0))}
+    ${createVerticalDim(xDimChain, y0, y1, x0, T.toFixed(0))}
+    ${createVerticalDim(xDimChain, y1, y3, x0, H.toFixed(0))}
+    ${createVerticalDim(xDimChain, y3, y4, x0, (halfD + B).toFixed(0))}
+    ${createVerticalDim(xDimTotal, y0, y4, x0, totalHeight.toFixed(0))}
+  </g>
+</svg>`;
+    document.getElementById('svgHalfContainer').innerHTML = svgHalf;
+    document.getElementById('halfTitle').textContent =
+        `Половинка пакета (длина ножей биговок ${halfKnifeLength_m} м)`;
+
+    const moduleWidth = x3;
+    const baseFullWidth = 2 * moduleWidth;
+    const x7 = baseFullWidth;
+    const x8 = x7 + G;
+
+    const axisX = moduleWidth;
+    const mirrorX = x => 2 * axisX - x;
+
+    const vbXFull = -margin;
+    const vbYFull = -margin;
+    const vbWFull = x8 + margin * 2;
+    const vbHFull = totalHeight + margin * 2;
+
+    const yDimChainFull = y0 - 20;
+    const yDimTotalFull = yDimChainFull - 24;
+
+    const leftStartX_full  = x0;
+    const leftStartY_full  = y2;
+    const leftDiagEndX_full = leftStartX_full + deltaDiag;
+    const leftDiagEndY_full = y4;
+
+    const rightStartX_full = x3;
+    const rightStartY_full = y2;
+    const rightDiagBottomX_full = rightStartX_full - deltaDiag;
+    const rightDiagBottomY_full = y4;
+
+    const leftStartX_m  = mirrorX(leftStartX_full);
+    const leftStartY_m  = leftStartY_full;
+    const leftDiagEndX_m = mirrorX(leftDiagEndX_full);
+    const leftDiagEndY_m = leftDiagEndY_full;
+
+    const rightStartX_m = mirrorX(rightStartX_full);
+    const rightStartY_m = rightStartY_full;
+    const rightDiagBottomX_m = mirrorX(rightDiagBottomX_full);
+    const rightDiagBottomY_m = rightDiagBottomY_full;
+
+    const rightExtraDiagEndX = x8;
+    const rightExtraDiagEndY = y2 + G;
+
+    const fullVertLen = 6 * totalHeight;
+    const widthFull = x8 - x0;
+    const horizY1 = widthFull;
+    const horizY3 = widthFull;
+    const horizY2 = (axisX - x0) + (x8 - baseFullWidth);
+    const fullHorizLen = horizY1 + horizY2 + horizY3;
+    const fullDiagLen = 4 * sqrt2 * deltaDiag + sqrt2 * G;
+    const fullKnifeLength_mm = fullVertLen + fullHorizLen + fullDiagLen;
+    const fullKnifeLength_m = (fullKnifeLength_mm / 1000).toFixed(2);
+
+    geomFull = `
+  <g stroke="#000000" stroke-width="0.8" fill="none">
+    <rect x="${x0}" y="${y0}" width="${x8}" height="${totalHeight}" />
+    <line x1="${x0}" y1="${y0}" x2="${x0}" y2="${y4}" />
+    <line x1="${x1}" y1="${y0}" x2="${x1}" y2="${y4}" />
+    <line x1="${x2}" y1="${y0}" x2="${x2}" y2="${y4}" />
+    <line x1="${x3}" y1="${y0}" x2="${x3}" y2="${y4}" />
+    <line x1="${mirrorX(x2)}" y1="${y0}" x2="${mirrorX(x2)}" y2="${y4}" />
+    <line x1="${mirrorX(x1)}" y1="${y0}" x2="${mirrorX(x1)}" y2="${y4}" />
+    <line x1="${mirrorX(x0)}" y1="${y0}" x2="${mirrorX(x0)}" y2="${y4}" />
+    <line x1="${x8}" y1="${y0}" x2="${x8}" y2="${y4}" />
+    <line x1="${x0}" y1="${y0}" x2="${x8}" y2="${y0}" />
+    <line x1="${x0}" y1="${y1}" x2="${x8}" y2="${y1}" />
+    <line x1="${x0}" y1="${y2}" x2="${axisX}" y2="${y2}" />
+    <line x1="${baseFullWidth}" y1="${y2}" x2="${x8}" y2="${y2}" />
+    <line x1="${x0}" y1="${y3}" x2="${x8}" y2="${y3}" />
+    <line x1="${x0}" y1="${y4}" x2="${x8}" y2="${y4}" />
+    <line x1="${leftStartX_full}"  y1="${leftStartY_full}"
+          x2="${leftDiagEndX_full}" y2="${leftDiagEndY_full}" />
+    <line x1="${rightStartX_full}" y1="${rightStartY_full}"
+          x2="${rightDiagBottomX_full}" y2="${rightDiagBottomY_full}" />
+    <line x1="${leftStartX_m}"  y1="${leftStartY_m}"
+          x2="${leftDiagEndX_m}" y2="${leftDiagEndY_m}" />
+    <line x1="${rightStartX_m}" y1="${rightStartY_m}"
+          x2="${rightDiagBottomX_m}" y2="${rightDiagBottomY_m}" />
+    <line x1="${leftStartX_m}" y1="${leftStartY_m}"
+          x2="${rightExtraDiagEndX}" y2="${rightExtraDiagEndY}" />
+  </g>`;
+
+    let svgFull = `
+<svg class="drawing" xmlns="http://www.w3.org/2000/svg"
+     viewBox="${vbXFull} ${vbYFull} ${vbWFull} ${vbHFull}">
+  <defs>
+    <marker id="arrow" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6 Z" fill="#0066cc"></path>
+    </marker>
+  </defs>
+  ${geomFull}
+  <g fill="#0066cc" stroke="#0066cc" stroke-width="0.5">
+    ${createHorizontalDim(x0, x1, yDimChainFull, y0, halfD.toFixed(0))}
+    ${createHorizontalDim(x1, x2, yDimChainFull, y0, W.toFixed(0))}
+    ${createHorizontalDim(x2, x3, yDimChainFull, y0, halfD.toFixed(0))}
+    ${createHorizontalDim(x3, mirrorX(x2), yDimChainFull, y0, halfD.toFixed(0))}
+    ${createHorizontalDim(mirrorX(x2), mirrorX(x1), yDimChainFull, y0, W.toFixed(0))}
+    ${createHorizontalDim(mirrorX(x1), mirrorX(x0), yDimChainFull, y0, halfD.toFixed(0))}
+    ${createHorizontalDim(mirrorX(x0), x8, yDimChainFull, y0, G.toFixed(0))}
+    ${createHorizontalDim(x0, x8, yDimTotalFull, y0, (2 * (D + W) + G).toFixed(0))}
+    ${createVerticalDim(xDimChain, y0, y1, x0, T.toFixed(0))}
+    ${createVerticalDim(xDimChain, y1, y3, x0, H.toFixed(0))}
+    ${createVerticalDim(xDimChain, y3, y4, x0, (halfD + B).toFixed(0))}
+    ${createVerticalDim(xDimTotal, y0, y4, x0, totalHeight.toFixed(0))}
+  </g>
+</svg>`;
+    document.getElementById('svgFullContainer').innerHTML = svgFull;
+    document.getElementById('fullTitle').textContent =
+        `Цельнокройный пакет (длина ножей биговок ${fullKnifeLength_m} м)`;
+
+    fullBagRect = {
+        w: 2 * (D + W) + G,
+        h: totalHeight
+    };
+    halfBagRect = {
+        w: D + W + G,
+        h: totalHeight
+    };
+
+    computeOptimalFormats();
+}
+
+/* выбор бумаги */
+function computeOptimalFormats() {
+    const resultsDiv = document.getElementById('layoutResults');
+    resultsDiv.innerHTML = "";
+    layoutBest = [];
+
+    const sheetContainer = document.getElementById("sheetLayoutContainer");
+    const placeholder = document.getElementById("sheetLayoutPlaceholder");
+    if (placeholder) placeholder.remove();
+    sheetContainer.innerHTML = "";
+
+    if (!fullBagRect.w || !fullBagRect.h) return;
+
+    const typeCheckboxes = {
+        "А3 цифра": document.getElementById('cfA3').checked,
+        "А2 цифра": document.getElementById('cfA2').checked,
+        "А3 офсет": document.getElementById('ofA3').checked,
+        "А2 офсет": document.getElementById('ofA2').checked,
+        "А1 офсет": document.getElementById('ofA1').checked
+    };
+
+    const rows = [];
+    document.querySelectorAll("#paperTableBody tr").forEach(tr => {
+        const tds = tr.querySelectorAll("td");
+        if (tds.length < 7) return;
+        const len = parseFloat(tds[0].querySelector("input").value);
+        const wid = parseFloat(tds[1].querySelector("input").value);
+        const techL = parseFloat(tds[2].querySelector("input").value) || 0;
+        const techW = parseFloat(tds[3].querySelector("input").value) || 0;
+        const type = tds[6].querySelector("input").value.trim();
+        if (!len || !wid || !type) return;
+        const liveL = len - techL;
+        const liveW = wid - techW;
+        rows.push({ len, wid, liveL, liveW, type });
+    });
+
+    const bagFullW = fullBagRect.w;
+    const bagFullH = fullBagRect.h;
+    const bagHalfW = halfBagRect.w;
+    const bagHalfH = halfBagRect.h;
+
+    Object.entries(typeCheckboxes).forEach(([typeLabel, isChecked]) => {
+        if (!isChecked) return;
+
+        const relevant = rows.filter(r => r.type === typeLabel);
+        if (!relevant.length) return;
+
+        function fits(rectW, rectH, r) {
+            const normal = rectW <= r.liveL && rectH <= r.liveW;
+            const rotated = rectW <= r.liveW && rectH <= r.liveL;
+            if (!normal && !rotated) return null;
+            return { orientation: normal ? "normal" : "rotated" };
+        }
+
+        let best = null;
+        relevant.forEach(r => {
+            const fit = fits(bagFullW, bagFullH, r);
+            if (!fit) return;
+            const area = r.len * r.wid;
+            if (!best || area < best.area) {
+                best = {
+                    mode: "full",
+                    typeLabel,
+                    len: r.len,
+                    wid: r.wid,
+                    liveL: r.liveL,
+                    liveW: r.liveW,
+                    orientation: fit.orientation,
+                    area
+                };
+            }
+        });
+
+        if (!best) {
+            relevant.forEach(r => {
+                const fit = fits(bagHalfW, bagHalfH, r);
+                if (!fit) return;
+                const area = r.len * r.wid;
+                if (!best || area < best.area) {
+                    best = {
+                        mode: "half",
+                        typeLabel,
+                        len: r.len,
+                        wid: r.wid,
+                        liveL: r.liveL,
+                        liveW: r.liveW,
+                        orientation: fit.orientation,
+                        area
+                    };
+                }
+            });
+        }
+
+        let html;
+        if (best) {
+            const labelMode = best.mode === "full" ? "из целого" : "из половинок";
+            const text = `Оптим. размер печати ${labelMode}: ${best.len} × ${best.wid}`;
+            html = `<strong>${typeLabel}:</strong> ${text}`;
+            resultsDiv.insertAdjacentHTML("beforeend",
+                `<div class="result-block">${html}</div>`);
+
+            layoutBest.push(best);
+        } else {
+            html = `<strong>${typeLabel}:</strong> не помещается`;
+            resultsDiv.insertAdjacentHTML("beforeend",
+                `<div class="result-block">${html}</div>`);
+        }
+    });
+
+    if (!layoutBest.length) {
+        sheetContainer.innerHTML =
+            '<span id="sheetLayoutPlaceholder" class="layout-placeholder">Нет подходящих форматов — ничего визуализировать.</span>';
+    } else {
+        renderSheetLayouts();
+    }
+}
+
+/* раскладка: прямоугольники с разнесёнными вертикальными размерами */
+function createSheetSVG(len, wid, bagWidth, bagHeight, gaps) {
+    const maxDim = Math.max(len, wid);
+    const scale = 500 / maxDim;
+
+    const margin = 50;
+    const extraLeft = 40; // доп. запас слева, чтобы влезли цифры
+
+    const sheetWpx = len * scale;
+    const sheetHpx = wid * scale;
+
+    // добавили extraLeft в общую ширину
+    const svgW = sheetWpx + margin * 2 + extraLeft;
+    const svgH = sheetHpx + margin * 2 + 40;
+
+    // лист и пакет сдвигаем вправо на extraLeft
+    const sheetX = margin + extraLeft;
+    const sheetY = margin + 20;
+
+    const bagX = sheetX + gaps.left * scale;
+    const bagY = sheetY + gaps.top * scale;
+    const bagWpx = bagWidth * scale;
+    const bagHpx = bagHeight * scale;
+
+    const dimColor = "#0066cc";
+
+    const xDimBag   = sheetX - 18;  // пакет
+    const xDimSheet = sheetX - 36;  // лист
+    const yDimBag   = sheetY - 10;
+    const yDimSheet = sheetY - 26;
+
+    function vDim(x, y1, y2, label, offsetFrac) {
+        const span = y2 - y1;
+        const midY = (y1 + y2) / 2 + span * offsetFrac;
+        return `
+        <line x1="${sheetX}" y1="${y1}" x2="${x}" y2="${y1}" stroke="${dimColor}" stroke-width="0.7"/>
+        <line x1="${sheetX}" y1="${y2}" x2="${x}" y2="${y2}" stroke="${dimColor}" stroke-width="0.7"/>
+        <line x1="${x}" y1="${y1}" x2="${x}" y2="${y2}" stroke="${dimColor}" stroke-width="0.9"
+              marker-start="url(#arrowSheet)" marker-end="url(#arrowSheet)"/>
+        <text x="${x - 3}" y="${midY + 4}" font-size="11" text-anchor="end" fill="${dimColor}">${label}</text>`;
+    }
+
+    function hDim(y, x1, x2, label) {
+        const midX = (x1 + x2) / 2;
+        return `
+        <line x1="${x1}" y1="${sheetY}" x2="${x1}" y2="${y}" stroke="${dimColor}" stroke-width="0.7"/>
+        <line x1="${x2}" y1="${sheetY}" x2="${x2}" y2="${y}" stroke="${dimColor}" stroke-width="0.7"/>
+        <line x1="${x1}" y1="${y}" x2="${x2}" y2="${y}" stroke="${dimColor}" stroke-width="0.9"
+              marker-start="url(#arrowSheet)" marker-end="url(#arrowSheet)"/>
+        <text x="${midX}" y="${y - 4}" font-size="11" text-anchor="middle" fill="${dimColor}">${label}</text>`;
+    }
+
+    const xGap = bagX + bagWpx * 0.7;  // смещение от центра на ~20%
+    const yGap = bagY + bagHpx * 0.3;
+
+    return `
+<svg xmlns="http://www.w3.org/2000/svg" width="${svgW}" height="${svgH}">
+  <defs>
+    <marker id="arrowSheet" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6 Z" fill="${dimColor}"></path>
+    </marker>
+  </defs>
+
+  <!-- Лист -->
+  <rect x="${sheetX}" y="${sheetY}" width="${sheetWpx}" height="${sheetHpx}"
+        fill="#ffffff" stroke="#000000" stroke-width="1"/>
+
+  <!-- Пакет -->
+  <rect x="${bagX}" y="${bagY}" width="${bagWpx}" height="${bagHpx}"
+        fill="none" stroke="#000000" stroke-width="1"/>
+
+  <!-- Наружные размеры -->
+  <g stroke="${dimColor}" fill="${dimColor}" stroke-width="0.7">
+    ${vDim(xDimBag,   bagY,             bagY + bagHpx,     bagHeight.toFixed(0), +0.10)}
+    ${vDim(xDimSheet, sheetY,           sheetY + sheetHpx, wid.toFixed(0),       -0.10)}
+    ${hDim(yDimBag,   bagX,             bagX + bagWpx,     bagWidth.toFixed(0))}
+    ${hDim(yDimSheet, sheetX,           sheetX + sheetWpx, len.toFixed(0))}
+  </g>
+
+  <!-- Зазоры -->
+  <g stroke="${dimColor}" fill="${dimColor}" stroke-width="0.7">
+    <!-- верх -->
+    <line x1="${xGap}" y1="${sheetY}" x2="${xGap}" y2="${bagY}"
+          marker-start="url(#arrowSheet)" marker-end="url(#arrowSheet)"/>
+    <text x="${xGap}" y="${sheetY - 4}" font-size="11" text-anchor="middle">
+      ${gaps.top.toFixed(1)}
+    </text>
+
+    <!-- низ -->
+    <line x1="${xGap}" y1="${bagY + bagHpx}" x2="${xGap}" y2="${sheetY + sheetHpx}"
+          marker-start="url(#arrowSheet)" marker-end="url(#arrowSheet)"/>
+    <text x="${xGap}" y="${sheetY + sheetHpx + 12}" font-size="11" text-anchor="middle">
+      ${gaps.bottom.toFixed(1)}
+    </text>
+
+    <!-- левый -->
+    <line x1="${sheetX}" y1="${yGap}" x2="${bagX}" y2="${yGap}"
+          marker-start="url(#arrowSheet)" marker-end="url(#arrowSheet)"/>
+    <text x="${sheetX - 2}" y="${yGap + 4}" font-size="11" text-anchor="end">
+      ${gaps.left.toFixed(1)}
+    </text>
+
+    <!-- правый -->
+    <line x1="${bagX + bagWpx}" y1="${yGap}" x2="${sheetX + sheetWpx}" y2="${yGap}"
+          marker-start="url(#arrowSheet)" marker-end="url(#arrowSheet)"/>
+    <text x="${sheetX + sheetWpx + 2}" y="${yGap + 4}" font-size="11" text-anchor="start">
+      ${gaps.right.toFixed(1)}
+    </text>
+  </g>
+</svg>`;
+}
+
+
+function renderSheetLayouts() {
+    const container = document.getElementById("sheetLayoutContainer");
+    container.innerHTML = "";
+
+    layoutBest.forEach(best => {
+        const bagDims = best.mode === "full" ? fullBagRect : halfBagRect;
+        let bagW = bagDims.w;
+        let bagH = bagDims.h;
+
+        if (best.orientation === "rotated") {
+            [bagW, bagH] = [bagH, bagW];
+        }
+
+        const left = (best.len - bagW) / 2;
+        const right = left;
+        const top = (best.wid - bagH) / 2;
+        const bottom = top;
+
+        const gaps = { left, right, top, bottom };
+        const modeLabel = best.mode === "full" ? "из целого" : "из половинок";
+
+        const svg = createSheetSVG(best.len, best.wid, bagW, bagH, gaps);
+
+        const details = document.createElement("details");
+        details.className = "sheet-block";
+        details.open = false;
+        details.innerHTML = `
+            <summary>${best.typeLabel} — ${modeLabel}, лист ${best.len} × ${best.wid}</summary>
+            <div class="sheet-svg-wrapper">${svg}</div>
+        `;
+        container.appendChild(details);
+    });
+}
+
+/* таблица бумаги */
+const paperBody = document.getElementById('paperTableBody');
+
+function recalcLiveFields(tr) {
+    const tds = tr.querySelectorAll("td");
+    if (tds.length < 7) return;
+    const len = parseFloat(tds[0].querySelector("input").value) || 0;
+    const wid = parseFloat(tds[1].querySelector("input").value) || 0;
+    const techL = parseFloat(tds[2].querySelector("input").value) || 0;
+    const techW = parseFloat(tds[3].querySelector("input").value) || 0;
+    tds[4].querySelector("input").value = len ? (len - techL) : "";
+    tds[5].querySelector("input").value = wid ? (wid - techW) : "";
+}
+function addPaperRow(data) {
+    const tr = document.createElement("tr");
+    const length = data?.length ?? "";
+    const width  = data?.width ?? "";
+    const techL  = data?.techL ?? "";
+    const techW  = data?.techW ?? "";
+    const type   = data?.type ?? "";
+    const liveL = (length !== "" && techL !== "") ? (length - techL) : "";
+    const liveW = (width  !== "" && techW !== "") ? (width  - techW) : "";
+    tr.innerHTML = `
+        <td><input type="number" value="${length}"></td>
+        <td><input type="number" value="${width}"></td>
+        <td><input type="number" value="${techL}"></td>
+        <td><input type="number" value="${techW}"></td>
+        <td><input type="number" value="${liveL}" readonly></td>
+        <td><input type="number" value="${liveW}" readonly></td>
+        <td><input type="text" value="${type}"></td>
+        <td><button type="button" class="delete-row">×</button></td>
+    `;
+    paperBody.appendChild(tr);
+}
+defaultPaperData.forEach(r => addPaperRow(r));
+
+paperBody.addEventListener("input", (e) => {
+    const tr = e.target.closest("tr");
+    if (tr) {
+        recalcLiveFields(tr);
+        computeOptimalFormats();
+    }
+});
+paperBody.addEventListener('click', (e) => {
+    if (e.target.classList.contains('delete-row')) {
+        const row = e.target.closest('tr');
+        if (row) {
+            row.remove();
+            computeOptimalFormats();
+        }
+    }
+});
+document.getElementById('addPaperRow').addEventListener('click', () => {
+    addPaperRow();
+});
+
+/* аккордеон */
+const paperToggle = document.getElementById('paperAccordionToggle');
+const paperContent = document.getElementById('paperAccordionContent');
+const paperArrow = document.getElementById('paperAccordionArrow');
+paperToggle.addEventListener('click', () => {
+    const opened = paperContent.classList.toggle('open');
+    paperArrow.textContent = opened ? '▲' : '▼';
+});
+
+/* вкладки */
+document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+        const target = tab.dataset.tab;
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById('tab-' + target).classList.add('active');
+    });
+});
+
+/* чекбоксы */
+['cfA3','cfA2','ofA3','ofA2','ofA1'].forEach(id => {
+    document.getElementById(id).addEventListener('change', computeOptimalFormats);
+});
+
+/* параметры пакета */
+['wInput','hInput','dInput','gInput','bInput','tInput'].forEach(id => {
+    document.getElementById(id).addEventListener('input', draw);
+});
+
+draw();
+</script>
+</body>
+</html>
